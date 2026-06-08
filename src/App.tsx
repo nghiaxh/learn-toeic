@@ -7,7 +7,7 @@ import { Result } from "./pages/Result";
 function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
+      <BrowserRouter basename="/learn-toeic">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/exam/:section" element={<Exam />} />
