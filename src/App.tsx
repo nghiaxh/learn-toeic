@@ -1,0 +1,21 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "./context/ThemeContext";
+import { Home } from "./pages/Home";
+import { Exam } from "./pages/Exam";
+import { Result } from "./pages/Result";
+
+function App() {
+  return (
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/exam/:section" element={<Exam />} />
+          <Route path="/result" element={<Result />} />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
+  );
+}
+
+export default App;
