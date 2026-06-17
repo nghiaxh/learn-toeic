@@ -18,6 +18,7 @@ npm run dev       # Start dev server
 npm run build     # Type-check and build
 npm run lint      # Run ESLint
 npm run preview   # Preview production build
+npm test          # Run all tests (Vitest)
 ```
 
 ## Tech Stack
@@ -32,6 +33,8 @@ npm run preview   # Preview production build
 | react-router-dom | Client-side routing |
 | lucide-react | Icons |
 | Browser Speech API | TTS for listening passages |
+| Vitest | Test runner |
+| React Testing Library | Component tests |
 
 ## Project Structure
 
@@ -43,6 +46,7 @@ src/
 ├── hooks/         # Custom hooks (exam, timer, speech, etc.)
 ├── pages/         # Route pages (Home, Exam, Result)
 ├── utils/         # Utility functions
+├── test/          # Test files (Vitest + RTL)
 ├── types.ts       # Shared TypeScript types
 ├── App.tsx        # Root component with routing
 └── main.tsx       # Entry point
