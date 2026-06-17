@@ -17,14 +17,35 @@ npm run preview    # preview built site
 
 No test framework exists. Do not run tests.
 
+## Architecture
+
+```
+index.html → main.tsx → App.tsx
+                          ├── /                → Home.tsx
+                          ├── /exam/:section   → Exam.tsx
+                          └── /result          → Result.tsx
+```
+
+All data and state live in-memory within a single session. Navigation between `Exam` and `Result` passes state via React Router's `useNavigate` (not URL params or a store).
+
 ## Data architecture
 
 - All questions live in `src/data/listening.ts` (listening, Parts 1–4) and `src/data/reading.ts` (reading, Parts 5–7). Combined via `src/data/questions.ts` which re-exports both. The `Question` type is imported from `src/types.ts`.
-- IDs **1–1001** = listening, **1301–2299** = reading. Questions are shuffled by ID range at runtime, not by part.
+- IDs **1–1001** = listening, **1301–2299** = reading. Questions are shuffled by ID range at runtime, not by part. The full question bank (~1400 items) ships in the JS bundle.
 - `useQuestionSelector` picks 100 random questions from the active ID range and tracks used IDs in `localStorage` (`toeic-used-qids`) to reduce repeats across sessions.
 - Question options in the source file use prefixes (`A) ...`, `B) ...`). At runtime `useQuestionSelector` strips prefixes and shuffles the option order (and correct answer key), so agents should write answer keys and option ordering consistently but **expect them to be re-mapped**.
 
 ## Part conventions
+
+| Part | Type | Display |
+|------|------|---------|
+| 1 | Photo | Shows passage (photo description) + 4 options |
+| 2 | Question-response | Plays passage via TTS (or original question text) + **3 options** |
+| 3 | Short conversation | Shows passage as TTS/listening block + 4 options |
+| 4 | Short talk | Shows passage as TTS/listening block + 4 options |
+| 5 | Incomplete sentence | Shows question text inline + 4 options |
+| 6 | Text completion | Shows passage header + TTS button + questions with `blanks[]` |
+| 7 | Reading comprehension | Shows `passageTitle` + `passageBody` block + 4 options |
 
 - **Part 2** uses exactly 3 options (`"A" | "B" | "C"`, never "D"). All other parts use 4 options (`"A" | "B" | "C" | "D"`).
 - **Part 6** uses the `blanks?: Blank[]` field for multi-blank passage format (each blank has independent options/answer). Agent-written generator scripts must fill `blanks` correctly.
@@ -33,9 +54,11 @@ No test framework exists. Do not run tests.
 
 ## Routes
 
-- `/` → Home page (section selection)
-- `/exam/:section` → Exam (listening | reading | full)
-- `/result` → Score summary (receives state via `useNavigate`)
+| Route | Component | Purpose |
+|-------|-----------|---------|
+| `/` | `Home` | Section selection (listening/reading/full) |
+| `/exam/:section` | `Exam` | Exam (listening \| reading \| full) |
+| `/result` | `Result` | Score summary (receives state via `useNavigate`) |
 
 ## Time limits
 
@@ -71,12 +94,82 @@ interface Question {
 }
 ```
 
+## State management
+
+No external state library. All state is React built-ins:
+
+| State | Owner | Mechanism |
+|-------|-------|-----------|
+| Question bank | Static import | Module-level array |
+| Selected + shuffled questions | `Exam.tsx` | `useMemo` via `useQuestionSelector` |
+| Per-exam answers | `useExam` | `useState<Record<number, AnswerKey\|null>>` |
+| Current question index | `useExam` | `useState<number>` |
+| Flagged questions | `useExam` | `useState<Set<number>>` |
+| Timer | `useTimer` | `useState<number>` + `setInterval` |
+| TTS state | `useSpeech` | `useState` + `useRef<Utterance>` |
+| Theme | `ThemeContext` | `useState` + `<html data-theme>` + `localStorage` |
+
+## Scoring
+
+- One point per question (Part 6 blanks each count as a separate point)
+- Full test: score averaged and mapped to TOEIC 10–990 scale (max 990)
+- Partial tests (listening/reading only): mapped to 495 scale
+
 ## Design conventions
 
 - Tailwind utility classes + daisyUI theme components (`btn`, `card`, `badge`, etc.). Prefer daisyUI semantic colors (`primary`, `base-100`, etc.).
 - `lucide-react` for icons. `react-router-dom` for routing.
-- Theme context in `src/context/ThemeContext.tsx` — toggles `data-theme` on `<html>`.
+- Theme context in `src/context/ThemeContext.tsx` — toggles `data-theme` on `<html>`. Stores theme in `localStorage` as `toeic-theme` (`"light"` / `"dark"`).
 - All UI strings are in Vietnamese (tiếng Việt).
+
+## Exam flow
+
+```
+Home (section pick)
+  → Exam (100 questions, 1 at a time, with timer)
+    → submit / time expire
+      → Result (score + answer review)
+```
+
+### Exam page (`Exam.tsx`)
+
+- Shows one question at a time with prev/next navigation
+- Desktop: inline prev/next buttons. Mobile: fixed bottom bar.
+- A sidebar (desktop) or overlay modal (mobile) shows a numbered palette — marks answered, current, and flagged questions
+- `Flag` button per question for bookmarking
+- `Check` button reveals correct answer per question (inline feedback without submitting)
+- `Clear answer` button per question
+- Timer auto-submits when it reaches zero
+
+### Timer (`useTimer`)
+
+Countdown timer using `setInterval` (1 sec tick). When it hits zero, calls `onExpire` callback that calculates the score and navigates to `/result`.
+
+### Listening (Parts 1–4)
+
+No audio files. Each listening question has a `passage` field containing the script. The `PassageView` component renders a "Play" button that calls the browser's `SpeechSynthesisUtterance` API. The TTS controls (play/pause/stop) are duplicated in `PassageView` (for Parts 1, 3, 4) and `ReadAloudInline` (for Part 2). The speech hook (`useSpeech`) manages utterance lifecycle.
+
+### Result page (`Result.tsx`)
+
+Displays score (raw count + percentage), estimated TOEIC score (full test: /990, partial: /495), time spent, and an expandable answer review section showing each question with correct/incorrect markers. Receives all data via React Router's `location.state`.
+
+## Key files
+
+| File | Role |
+|------|------|
+| `src/types.ts` | `Question`, `AnswerKey`, `Part`, `ExamState`, `ExamResult`, `Blank`, `QuestionGroup` |
+| `src/data/questions.ts` | All 1400 questions as `Question[]` |
+| `src/hooks/useQuestionSelector.ts` | Random selection, option shuffle, localStorage dedup, Part 6 grouping |
+| `src/hooks/useExam.ts` | Per-exam state: answers, navigation, flagging |
+| `src/hooks/useTimer.ts` | Countdown timer with expire callback |
+| `src/hooks/useSpeech.ts` | Browser TTS wrapper (play/pause/cancel) |
+| `src/context/ThemeContext.tsx` | Dark/light theme with localStorage persistence |
+| `src/pages/Exam.tsx` | Main exam UI: question display, timer, nav, submission |
+| `src/pages/Result.tsx` | Score summary with answer review |
+| `src/components/QuestionCard.tsx` | Renders a single question with selectable options |
+| `src/components/PassageView.tsx` | Renders passage body + TTS controls for listening |
+| `src/components/QuestionPalette.tsx` | Numbered grid for navigation + status overview |
+| `scripts/generate-questions.mjs` | Codegen tool that writes `questions.ts` |
 
 ## Question quality
 
