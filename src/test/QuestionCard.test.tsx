@@ -15,7 +15,7 @@ const baseQuestion: Question = {
 describe("QuestionCard", () => {
   it("renders the question text with id", () => {
     render(
-      <QuestionCard question={baseQuestion} onSelect={() => {}} />
+      <QuestionCard question={baseQuestion} selectedAnswer={null} onSelect={() => {}} />
     );
     expect(screen.getByText(/Choose the correct answer/)).toBeInTheDocument();
     expect(screen.getByText(/Câu 42/)).toBeInTheDocument();
@@ -23,7 +23,7 @@ describe("QuestionCard", () => {
 
   it("renders all options", () => {
     render(
-      <QuestionCard question={baseQuestion} onSelect={() => {}} />
+      <QuestionCard question={baseQuestion} selectedAnswer={null} onSelect={() => {}} />
     );
     expect(screen.getByText("Option A")).toBeInTheDocument();
     expect(screen.getByText("Option B")).toBeInTheDocument();
@@ -35,7 +35,7 @@ describe("QuestionCard", () => {
     const onSelect = vi.fn();
     const user = userEvent.setup();
     render(
-      <QuestionCard question={baseQuestion} onSelect={onSelect} />
+      <QuestionCard question={baseQuestion} selectedAnswer={null} onSelect={onSelect} />
     );
     await user.click(screen.getByText("Option B"));
     expect(onSelect).toHaveBeenCalledWith("B");
@@ -43,14 +43,14 @@ describe("QuestionCard", () => {
 
   it("shows passage text when provided", () => {
     const q = { ...baseQuestion, passage: "Read this passage." };
-    render(<QuestionCard question={q} onSelect={() => {}} />);
+    render(<QuestionCard question={q} selectedAnswer={null} onSelect={() => {}} />);
     expect(screen.getByText("Read this passage.")).toBeInTheDocument();
   });
 
   it("hides passage when hidePassage is true", () => {
     const q = { ...baseQuestion, passage: "Read this passage." };
     render(
-      <QuestionCard question={q} onSelect={() => {}} hidePassage />
+      <QuestionCard question={q} selectedAnswer={null} onSelect={() => {}} hidePassage />
     );
     expect(screen.queryByText("Read this passage.")).not.toBeInTheDocument();
   });
@@ -130,7 +130,7 @@ describe("QuestionCard", () => {
 
   it("does not show clear button when no answer selected", () => {
     render(
-      <QuestionCard question={baseQuestion} onSelect={() => {}} />
+      <QuestionCard question={baseQuestion} selectedAnswer={null} onSelect={() => {}} />
     );
     expect(screen.queryByText("Xoá")).not.toBeInTheDocument();
   });
@@ -139,6 +139,7 @@ describe("QuestionCard", () => {
     render(
       <QuestionCard
         question={baseQuestion}
+        selectedAnswer={null}
         onSelect={() => {}}
         onToggleFlag={() => {}}
       />
@@ -150,6 +151,7 @@ describe("QuestionCard", () => {
     render(
       <QuestionCard
         question={baseQuestion}
+        selectedAnswer={null}
         onSelect={() => {}}
         onToggleFlag={() => {}}
         showResult

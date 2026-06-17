@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { Result } from "../pages/Result";
-import type { Question, AnswerKey } from "../types";
+import type { Question } from "../types";
 
 const mockQuestions: Question[] = [
   { id: 1, part: 5, question: "Q1?", options: ["A1", "B1", "C1", "D1"], answer: "A" },
