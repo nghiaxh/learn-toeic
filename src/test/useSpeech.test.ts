@@ -17,7 +17,6 @@ class MockSpeechSynthesisUtterance {
 
 function mockSpeechSynthesis() {
   (globalThis as any).SpeechSynthesisUtterance = MockSpeechSynthesisUtterance;
-  const utteranceCallbacks: Record<string, () => void> = {};
   const mockUtterance = new MockSpeechSynthesisUtterance("");
   const mock = {
     speaking: false,
