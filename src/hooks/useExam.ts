@@ -1,8 +1,8 @@
-import { useState, useCallback } from "react";
-import type { AnswerKey } from "../types";
+import { useState, useCallback, useMemo } from "react";
+import type { AnswerKey, AnswerSelection } from "../types";
 
 export function useExam(totalQuestions: number) {
-  const [answers, setAnswers] = useState<Record<number, AnswerKey | null>>({});
+  const [answers, setAnswers] = useState<Record<number, AnswerSelection>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [flagged, setFlagged] = useState<Set<number>>(new Set());
@@ -16,6 +16,30 @@ export function useExam(totalQuestions: number) {
       }
       return { ...prev, [questionId]: answer };
     });
+  }, []);
+
+  const setBlankAnswer = useCallback(
+    (questionId: number, blankIndex: number, answer: AnswerKey | null) => {
+      setAnswers((prev) => {
+        const current = prev[questionId];
+        const arr: (AnswerKey | null)[] = Array.isArray(current) ? [...current] : [];
+        while (arr.length <= blankIndex) arr.push(null);
+        arr[blankIndex] = answer;
+
+        if (answer === null && arr.every((a) => a == null)) {
+          const next = { ...prev };
+          delete next[questionId];
+          return next;
+        }
+        return { ...prev, [questionId]: arr };
+      });
+    },
+    []
+  );
+
+  const isAnswered = useCallback((entry: AnswerSelection | undefined) => {
+    if (entry == null) return false;
+    return Array.isArray(entry) ? entry.every((a) => a != null) : true;
   }, []);
 
   const toggleFlag = useCallback((questionId: number) => {
@@ -46,11 +70,15 @@ export function useExam(totalQuestions: number) {
     setIsSubmitted(true);
   }, []);
 
-  const answeredCount = Object.keys(answers).length;
+  const answeredCount = useMemo(
+    () => Object.values(answers).filter((entry) => isAnswered(entry)).length,
+    [answers, isAnswered]
+  );
 
   return {
     answers,
     setAnswer,
+    setBlankAnswer,
     currentIndex,
     goTo,
     goNext,

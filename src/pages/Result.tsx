@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from "react-router";
 import { useMemo, useState, useEffect } from "react";
 import { ArrowUp, House, ArrowCounterClockwise } from "@phosphor-icons/react";
 import { Button, Card, Accordion, ProgressBar } from "@heroui/react";
-import type { Question, AnswerKey } from "../types";
+import type { Question, AnswerSelection } from "../types";
 import { QuestionCard } from "../components/QuestionCard";
 import { useReveal } from "../hooks/useReveal";
 
@@ -10,7 +10,7 @@ interface ResultState {
   section: string;
   score: number;
   total: number;
-  answers: Record<number, AnswerKey | null>;
+  answers: Record<number, AnswerSelection>;
   questions: Question[];
   timeSpent: number;
 }
@@ -136,16 +136,24 @@ export function Result() {
             </Accordion.Heading>
             <Accordion.Panel>
               <div className="space-y-4 px-4 pb-4">
-                {state.questions.map((q) => (
-                  <QuestionCard
-                    key={q.id}
-                    question={q}
-                    selectedAnswer={state.answers[q.id] ?? null}
-                    onSelect={() => {}}
-                    showResult
-                    correctAnswer={q.answer}
-                  />
-                ))}
+                {state.questions.map((q, i) => {
+                  const reviewAnswer = state.answers[q.id];
+                  return (
+                    <QuestionCard
+                      key={q.id}
+                      question={q}
+                      selectedAnswer={
+                        Array.isArray(reviewAnswer) ? undefined : (reviewAnswer ?? null)
+                      }
+                      onSelect={() => {}}
+                      showResult
+                      correctAnswer={q.answer}
+                      questionNumber={i + 1}
+                      partLabel={`Phần ${q.part}`}
+                      blankAnswers={Array.isArray(reviewAnswer) ? reviewAnswer : []}
+                    />
+                  );
+                })}
               </div>
             </Accordion.Panel>
           </Accordion.Item>

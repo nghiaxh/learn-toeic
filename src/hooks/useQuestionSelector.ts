@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import type { Question, AnswerKey } from "../types";
 import { shuffleArray } from "../utils/shuffle";
 
@@ -18,7 +18,7 @@ function shuffleQuestionOptions(q: Question): Question {
       options: indices.map((i) => q.options[i]),
       answer: keys[indices.findIndex((i) => keys[i] === q.answer)],
       blanks: q.blanks.map((blank) => ({
-        options: indices.map((i) => blank.options[i].replace(/^[A-D]\)\s*/, "")),
+        options: indices.map((i) => blank.options[i]),
         answer: keys[indices.findIndex((i) => keys[i] === blank.answer)],
       })),
     };
@@ -34,34 +34,33 @@ function shuffleQuestionOptions(q: Question): Question {
 
 function mergePart6Groups(questions: Question[]): Question[] {
   const result: Question[] = [];
-  let i = 0;
-  while (i < questions.length) {
+  const seen = new Set<string>();
+  for (let i = 0; i < questions.length; i++) {
     const q = questions[i];
-    const group = [q];
-    while (
-      i + 1 < questions.length &&
-      questions[i + 1].part === 6 &&
-      questions[i + 1].passageBody &&
-      questions[i + 1].passageBody === q.passageBody
-    ) {
-      group.push(questions[i + 1]);
-      i++;
-    }
-
-    if (group.length > 1 && q.part === 6) {
-      result.push({
-        ...q,
-        options: group[0].options.map((_, idx) =>
-          group.map((g) => g.options[idx].replace(/^[A-D]\)\s*/, "")).join("; ")
-        ),
-        answer: group[0].answer,
-        blanks: group.map((g) => ({ options: g.options, answer: g.answer })),
-      });
-      i++;
+    const groupKey = q.part === 6 ? (q.passageBody ?? q.passage) : undefined;
+    if (q.part !== 6 || !groupKey) {
+      result.push(q);
       continue;
     }
-    result.push(q);
-    i++;
+    if (seen.has(groupKey)) continue;
+    seen.add(groupKey);
+    const group = questions
+      .slice(i)
+      .filter((x) => x.part === 6 && (x.passageBody ?? x.passage) === groupKey);
+    const first = group[0];
+    if (group.length === 1) {
+      result.push(first);
+      continue;
+    }
+    result.push({
+      ...first,
+      options: first.options.map((opt) => opt.replace(/^[A-D]\)\s*/, "")),
+      answer: first.answer,
+      blanks: group.map((g) => ({
+        options: g.options.map((opt) => opt.replace(/^[A-D]\)\s*/, "")),
+        answer: g.answer,
+      })),
+    });
   }
   return result;
 }
@@ -84,7 +83,7 @@ export function useQuestionSelector(
   questions: Question[],
   section: "listening" | "reading" | "full"
 ): Question[] {
-  return useMemo(() => {
+  const { selected, newIds } = useMemo(() => {
     const ranges = section === "full"
       ? [ID_RANGES.listening, ID_RANGES.reading]
       : [ID_RANGES[section]];
@@ -105,8 +104,18 @@ export function useQuestionSelector(
       selected.push(...picked);
       newIds.push(...picked.map((q) => q.id));
     }
-
-    updateUsedIds(newIds);
-    return mergePart6Groups(shuffleArray(selected)).map(shuffleQuestionOptions);
+    return { selected, newIds };
   }, [questions, section]);
+
+  useEffect(() => {
+    updateUsedIds(newIds);
+  }, [newIds]);
+
+  return useMemo(() => {
+    const merged = mergePart6Groups(shuffleArray(selected)).map(shuffleQuestionOptions);
+    if (section === "full") {
+      return merged.sort((a, b) => a.part - b.part || a.id - b.id);
+    }
+    return merged;
+  }, [selected, section]);
 }

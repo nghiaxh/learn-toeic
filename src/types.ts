@@ -1,5 +1,6 @@
 export type Part = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export type AnswerKey = "A" | "B" | "C" | "D";
+export type AnswerSelection = AnswerKey | (AnswerKey | null)[] | null;
 
 export interface Blank {
   options: string[];
@@ -20,7 +21,7 @@ export interface Question {
 
 export interface ExamState {
   section: "listening" | "reading" | "full";
-  answers: Record<number, AnswerKey | null>;
+  answers: Record<number, AnswerSelection>;
   currentIndex: number;
   timeRemaining: number;
   isSubmitted: boolean;
@@ -29,7 +30,7 @@ export interface ExamState {
 
 export interface ExamResult {
   section: "listening" | "reading" | "full";
-  answers: Record<number, AnswerKey | null>;
+  answers: Record<number, AnswerSelection>;
   score: number;
   total: number;
   timeSpent: number;
