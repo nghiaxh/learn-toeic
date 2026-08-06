@@ -1,6 +1,20 @@
 import { useMemo, useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, CheckCircle, Play, Pause, Square, Sun, Moon, Clock, Grid3X3, LogOut } from "lucide-react";
+import { useParams, useNavigate } from "react-router";
+import {
+  CaretLeft,
+  CaretRight,
+  CheckCircle,
+  Play,
+  Pause,
+  Square,
+  Sun,
+  Moon,
+  Clock,
+  SquaresFour,
+  SignOut,
+  Warning,
+} from "@phosphor-icons/react";
+import { Button, Modal, AlertDialog, useOverlayState } from "@heroui/react";
 import questions from "../data/questions";
 import { useExam } from "../hooks/useExam";
 import { useTimer } from "../hooks/useTimer";
@@ -8,6 +22,7 @@ import { useQuestionSelector } from "../hooks/useQuestionSelector";
 import { QuestionCard } from "../components/QuestionCard";
 import { QuestionPalette } from "../components/QuestionPalette";
 import { PassageView } from "../components/PassageView";
+import { successButtonStyle, warningButtonStyle } from "../components/buttonStyles";
 import { useSpeech } from "../hooks/useSpeech";
 import { useTheme } from "../context/ThemeContext";
 
@@ -15,30 +30,31 @@ function ReadAloudInline({ text }: { text: string }) {
   const { speak, pause, resume, cancel, speaking, paused, supported } = useSpeech();
   if (!supported) return null;
   return (
-    <div className="bg-base-100 border border-base-300 rounded-box p-3 mb-4 shadow-sm">
+    <div className="rounded-xl border border-border bg-surface p-3.5 mb-4 shadow-surface">
       <div className="flex justify-center">
         {!speaking ? (
-          <button
-            onClick={() => speak(text)}
-            title="Đọc to"
-            className="btn btn-outline btn-primary btn-md"
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-md"
+            onPress={() => speak(text)}
           >
-            <Play size={18} /> Phát
-          </button>
+            <Play weight="bold" size={15} /> Phát
+          </Button>
         ) : (
           <div className="flex gap-2">
             {paused ? (
-              <button onClick={resume} className="btn btn-outline btn-primary btn-md">
-                <Play size={18} /> Tiếp tục
-              </button>
+              <Button variant="outline" size="sm" className="rounded-md" onPress={resume}>
+                <Play weight="bold" size={15} /> Tiếp tục
+              </Button>
             ) : (
-              <button onClick={pause} className="btn btn-outline btn-warning btn-md">
-                <Pause size={18} /> Tạm dừng
-              </button>
+              <Button variant="outline" size="sm" className="rounded-md" onPress={pause}>
+                <Pause weight="bold" size={15} /> Tạm dừng
+              </Button>
             )}
-            <button onClick={cancel} className="btn btn-outline btn-error btn-md">
-              <Square size={18} /> Dừng
-            </button>
+            <Button variant="danger" size="sm" className="rounded-md" onPress={cancel}>
+              <Square weight="bold" size={15} /> Dừng
+            </Button>
           </div>
         )}
       </div>
@@ -54,7 +70,8 @@ export function Exam() {
   const { section } = useParams<{ section: string }>();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const [paletteOpen, setPaletteOpen] = useState(false);
+  const paletteState = useOverlayState();
+  const [submitOpen, setSubmitOpen] = useState(false);
   const [checkedQuestions, setCheckedQuestions] = useState<Set<number>>(new Set());
 
   const typedSection = (section === "listening" || section === "reading" || section === "full")
@@ -139,7 +156,10 @@ export function Exam() {
   }, [currentQuestion, exam.isSubmitted, exam.answers]);
 
   const handleSubmit = useCallback(() => {
-    if (!window.confirm("Bạn có chắc chắn muốn nộp bài?")) return;
+    setSubmitOpen(true);
+  }, []);
+
+  const confirmSubmit = useCallback(() => {
     timer.pause();
     const score = shuffledQuestions.reduce((acc, q) => {
       const userAnswer = exam.answers[q.id];
@@ -177,30 +197,38 @@ export function Exam() {
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden">
-      <header className="flex items-center justify-between px-3 py-1.5 border-b border-base-200 bg-base-100 shrink-0 z-10 gap-2 shadow-xs">
-        <button onClick={() => navigate("/")} className="font-bold text-sm whitespace-nowrap text-primary hover:opacity-80 cursor-pointer">
+      <header className="z-10 flex shrink-0 items-center justify-between gap-2 border-b border-border bg-surface px-3 py-2 shadow-xs">
+        <button
+          onClick={() => navigate("/")}
+          className="font-serif text-lg font-semibold tracking-tight text-accent hover:opacity-80 cursor-pointer"
+        >
           TOEIC
         </button>
 
-        <div className="flex items-center gap-1.5 font-mono text-sm font-bold tracking-wider px-3 py-1 rounded-full border shadow-sm bg-base-100 border-base-300">
-          <Clock size={14} className={timeWarning ? "text-error" : "text-base-content/60"} />
-          <span className={timeWarning ? "text-error" : ""}>{timer.formatted}</span>
+        <div className="flex items-center gap-1.5 rounded-full border border-border bg-surface-secondary px-3 py-1 font-mono text-sm font-semibold tracking-wider tabular-nums">
+          <Clock size={14} className={timeWarning ? "text-danger" : "text-muted"} />
+          <span className={timeWarning ? "text-danger" : ""}>{timer.formatted}</span>
         </div>
 
         <div className="flex items-center gap-1">
-          <button onClick={handleSubmit} className="btn btn-success btn-xs sm:btn-sm" title="Nộp bài">
+          <Button size="sm" variant="primary" onPress={handleSubmit} className="rounded-lg">
             <CheckCircle size={14} /> <span className="hidden sm:inline ml-0.5">Nộp bài</span>
-          </button>
-          <button onClick={() => navigate("/")} className="btn btn-ghost btn-xs sm:btn-sm" title="Thoát">
-            <LogOut size={14} /> <span className="hidden sm:inline ml-0.5">Thoát</span>
-          </button>
-          <button
-            onClick={toggleTheme}
-            title={theme === "dark" ? "Chế độ sáng" : "Chế độ tối"}
-            className="btn btn-ghost btn-square btn-xs text-base-content/50 hover:text-base-content"
-          >
-            {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
+          </Button>
+          <Button size="sm" variant="ghost" onPress={() => navigate("/")} className="rounded-lg">
+            <SignOut size={14} /> <span className="hidden sm:inline ml-0.5">Thoát</span>
+          </Button>
+          <span title={theme === "dark" ? "Chế độ sáng" : "Chế độ tối"}>
+            <Button
+              isIconOnly
+              size="sm"
+              variant="ghost"
+              onPress={toggleTheme}
+              className="rounded-lg text-muted hover:text-foreground"
+              aria-label="Chuyển chế độ sáng tối"
+            >
+              {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+            </Button>
+          </span>
         </div>
       </header>
 
@@ -252,75 +280,105 @@ export function Exam() {
             onClearAnswer={handleClearAnswer}
           />
 
-          <>
-              {/* Desktop inline nav */}
-              <div className="hidden lg:flex justify-between mt-4">
-                <button
-                  onClick={exam.goPrev}
-                  disabled={exam.currentIndex === 0}
-                  className="btn btn-outline"
+          {/* Desktop inline nav */}
+          <div className="hidden lg:flex justify-between mt-4">
+            <Button
+              variant="outline"
+              isDisabled={exam.currentIndex === 0}
+              onPress={exam.goPrev}
+              className="rounded-lg"
+            >
+              <CaretLeft size={18} /> Trước
+            </Button>
+
+            <div className="flex gap-2">
+              {exam.answers[currentQuestion.id] && !checkedQuestions.has(currentQuestion.id) && (
+                <Button
+                  variant="primary"
+                  style={warningButtonStyle}
+                  onPress={handleCheck}
+                  className="rounded-lg"
                 >
-                  <ChevronLeft size={18} /> Trước
-                </button>
+                  <CheckCircle size={18} /> Kiểm tra
+                </Button>
+              )}
 
-                <div className="flex gap-2">
-                  {exam.answers[currentQuestion.id] && !checkedQuestions.has(currentQuestion.id) && (
-                    <button
-                      onClick={handleCheck}
-                      className="btn btn-warning"
-                    >
-                      <CheckCircle size={18} /> Kiểm tra
-                    </button>
-                  )}
-
-                  {exam.currentIndex === exam.totalQuestions - 1 ? (
-                    <button onClick={handleSubmit} className="btn btn-success">
-                      <CheckCircle size={18} /> Nộp bài
-                    </button>
-                  ) : (
-                    <button onClick={exam.goNext} className="btn btn-primary">
-                      Tiếp theo <ChevronRight size={18} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Mobile fixed bottom nav */}
-              <div className="fixed bottom-0 left-0 right-0 lg:hidden z-20 bg-base-100 border-t border-base-200 px-2 py-1.5 flex items-center gap-1 shadow-lg">
-                <button
-                  onClick={exam.goPrev}
-                  disabled={exam.currentIndex === 0}
-                  className="btn btn-outline btn-xs flex-1 min-w-0"
+              {exam.currentIndex === exam.totalQuestions - 1 ? (
+                <Button
+                  variant="primary"
+                  style={successButtonStyle}
+                  onPress={handleSubmit}
+                  className="rounded-lg"
                 >
-                  <ChevronLeft size={14} /> <span className="hidden xs:inline ml-0.5">Trước</span>
-                </button>
-
-                {exam.answers[currentQuestion.id] && !checkedQuestions.has(currentQuestion.id) ? (
-                  <button onClick={handleCheck} className="btn btn-warning btn-xs flex-1 min-w-0">
-                    <CheckCircle size={14} /> <span className="hidden xs:inline ml-0.5">Kiểm tra</span>
-                  </button>
-                ) : null}
-
-                {exam.currentIndex === exam.totalQuestions - 1 ? (
-                  <button onClick={handleSubmit} className="btn btn-success btn-xs flex-1 min-w-0">
-                    <span className="hidden xs:inline">Nộp</span> <CheckCircle size={14} />
-                  </button>
-                ) : (
-                  <button onClick={exam.goNext} className="btn btn-primary btn-xs flex-1 min-w-0">
-                    <span className="hidden xs:inline">Tiếp</span> <ChevronRight size={14} />
-                  </button>
-                )}
-
-                <button
-                  onClick={() => setPaletteOpen(true)}
-                  className="btn btn-ghost btn-square btn-xs shrink-0"
-                  title="Danh sách câu hỏi"
-                >
-                  <Grid3X3 size={14} />
-                </button>
-              </div>
-            </>
+                  <CheckCircle size={18} /> Nộp bài
+                </Button>
+              ) : (
+                <Button variant="primary" onPress={exam.goNext} className="rounded-lg">
+                  Tiếp theo <CaretRight size={18} />
+                </Button>
+              )}
+            </div>
           </div>
+
+          {/* Mobile fixed bottom nav */}
+          <div className="fixed bottom-0 left-0 right-0 z-20 flex items-center gap-1 border-t border-border bg-surface px-2 py-1.5 shadow-lg lg:hidden">
+            <Button
+              size="sm"
+              variant="outline"
+              isDisabled={exam.currentIndex === 0}
+              onPress={exam.goPrev}
+              className="flex-1 min-w-0 rounded-lg px-2"
+            >
+              <CaretLeft size={14} /> <span className="hidden xs:inline ml-0.5">Trước</span>
+            </Button>
+
+            {exam.answers[currentQuestion.id] && !checkedQuestions.has(currentQuestion.id) ? (
+              <Button
+                size="sm"
+                variant="primary"
+                style={warningButtonStyle}
+                onPress={handleCheck}
+                className="flex-1 min-w-0 rounded-lg px-2"
+              >
+                <CheckCircle size={14} /> <span className="hidden xs:inline ml-0.5">Kiểm tra</span>
+              </Button>
+            ) : null}
+
+            {exam.currentIndex === exam.totalQuestions - 1 ? (
+              <Button
+                size="sm"
+                variant="primary"
+                style={successButtonStyle}
+                onPress={handleSubmit}
+                className="flex-1 min-w-0 rounded-lg px-2"
+              >
+                <span className="hidden xs:inline">Nộp</span> <CheckCircle size={14} />
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="primary"
+                onPress={exam.goNext}
+                className="flex-1 min-w-0 rounded-lg px-2"
+              >
+                <span className="hidden xs:inline">Tiếp</span> <CaretRight size={14} />
+              </Button>
+            )}
+
+            <span title="Danh sách câu hỏi">
+              <Button
+                isIconOnly
+                size="sm"
+                variant="ghost"
+                onPress={paletteState.open}
+                className="shrink-0 rounded-lg"
+                aria-label="Danh sách câu hỏi"
+              >
+                <SquaresFour size={14} />
+              </Button>
+            </span>
+          </div>
+        </div>
 
         <div className="w-[340px] flex-shrink-0 self-stretch overflow-y-auto hidden lg:block [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="min-h-full">
@@ -334,38 +392,73 @@ export function Exam() {
             />
           </div>
         </div>
+      </div>
 
-        {paletteOpen && (
-          <div
-            className="fixed inset-0 z-30 flex items-end sm:items-center justify-center bg-black/50"
-            onClick={() => setPaletteOpen(false)}
-          >
-            <div
-              className="bg-base-100 w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[80vh] overflow-y-auto p-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-bold text-base">Danh sách câu hỏi</span>
-                <button
-                  onClick={() => setPaletteOpen(false)}
-                  className="btn btn-ghost btn-sm btn-square"
+      {/* Mobile palette modal */}
+      <Modal.Root state={paletteState}>
+        <Modal.Backdrop>
+          <Modal.Container placement="bottom" size="md">
+            <Modal.Dialog>
+              <Modal.Header>
+                <Modal.Heading>Danh sách câu hỏi</Modal.Heading>
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="ghost"
+                  onPress={paletteState.close}
+                  className="rounded-lg"
+                  aria-label="Đóng"
                 >
                   ✕
-                </button>
-              </div>
-              <QuestionPalette
-                total={exam.totalQuestions}
-                currentIndex={exam.currentIndex}
-                answers={exam.answers}
-                flagged={exam.flagged}
-                questionIds={shuffledQuestions.map((q) => q.id)}
-                onGoTo={(i) => { exam.goTo(i); setPaletteOpen(false); }}
-                large
-              />
-            </div>
-          </div>
-        )}
-      </div>
+                </Button>
+              </Modal.Header>
+              <Modal.Body>
+                <QuestionPalette
+                  total={exam.totalQuestions}
+                  currentIndex={exam.currentIndex}
+                  answers={exam.answers}
+                  flagged={exam.flagged}
+                  questionIds={shuffledQuestions.map((q) => q.id)}
+                  onGoTo={(i) => {
+                    exam.goTo(i);
+                    paletteState.close();
+                  }}
+                  large
+                />
+              </Modal.Body>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal.Root>
+
+      {/* Submit confirmation */}
+      <AlertDialog.Root isOpen={submitOpen} onOpenChange={setSubmitOpen}>
+        <AlertDialog.Backdrop>
+          <AlertDialog.Container size="sm">
+            <AlertDialog.Dialog>
+              <AlertDialog.Header>
+                <AlertDialog.Icon status="warning">
+                  <Warning size={20} weight="bold" />
+                </AlertDialog.Icon>
+                <AlertDialog.Heading>Nộp bài?</AlertDialog.Heading>
+              </AlertDialog.Header>
+              <AlertDialog.Body>Bạn có chắc chắn muốn nộp bài?</AlertDialog.Body>
+              <AlertDialog.Footer>
+                <Button
+                  variant="ghost"
+                  onPress={() => setSubmitOpen(false)}
+                  className="rounded-lg"
+                >
+                  Huỷ
+                </Button>
+                <Button variant="danger" onPress={confirmSubmit} className="rounded-lg">
+                  Nộp bài
+                </Button>
+              </AlertDialog.Footer>
+            </AlertDialog.Dialog>
+          </AlertDialog.Container>
+        </AlertDialog.Backdrop>
+      </AlertDialog.Root>
     </div>
   );
 }
