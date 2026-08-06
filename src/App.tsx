@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router";
 import { ThemeProvider } from "./context/ThemeContext";
 import { Home } from "./pages/Home";
 import { Exam } from "./pages/Exam";
