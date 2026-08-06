@@ -78,7 +78,7 @@ describe("QuestionPalette", () => {
       />
     );
     const btn3 = screen.getByText("3");
-    expect(btn3.className).toContain("btn-primary");
+    expect(btn3).toHaveAttribute("aria-current", "true");
   });
 
   it("renders with large prop", () => {

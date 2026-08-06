@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Flag } from "lucide-react";
+import { Flag } from "@phosphor-icons/react";
 import type { AnswerKey } from "../types";
 
 interface QuestionPaletteProps {
@@ -31,14 +31,14 @@ export function QuestionPalette({
     [questionIds, flagged]
   );
 
-  const cols = large ? (total > 100 ? 10 : 5) : (total > 100 ? 12 : 5);
+  const cols = large ? (total > 100 ? 10 : 5) : total > 100 ? 12 : 5;
 
   return (
-    <div className={`bg-base-100 border border-base-300 rounded-box shadow-sm ${large ? "p-4" : "p-1.5"}`}>
+    <div className={`rounded-xl border border-border bg-surface shadow-surface ${large ? "p-4" : "p-2"}`}>
       <div className={`flex items-center justify-between gap-2 ${large ? "mb-3" : "mb-2"}`}>
         <span className={`font-semibold ${large ? "text-sm" : "text-xs"}`}>Câu hỏi</span>
-        <span className={`text-base-content/40 tabular-nums ${large ? "text-xs" : "text-[11px]"}`}>
-          {answeredCount}/{total} &middot; {flaggedCount} <Flag size={large ? 11 : 10} className="inline" />
+        <span className={`text-muted tabular-nums flex items-center gap-0.5 ${large ? "text-xs" : "text-[11px]"}`}>
+          {answeredCount}/{total} · {flaggedCount} <Flag size={large ? 11 : 10} />
         </span>
       </div>
       <div className={large ? "gap-1.5" : "gap-1"} style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
@@ -48,28 +48,30 @@ export function QuestionPalette({
           const isAnswered = answers[qId] != null;
           const isFlagged = flagged.has(qId);
 
-          let btnClass = "btn-ghost border-base-300";
+          let cellClass = "bg-surface-secondary text-muted hover:bg-surface-tertiary";
 
-          if (isCurrent && isAnswered) {
-            btnClass = "btn-primary";
-          } else if (isCurrent) {
-            btnClass = "btn-outline btn-primary";
+          if (isCurrent) {
+            cellClass = "bg-accent text-accent-foreground hover:bg-accent-hover";
           } else if (isAnswered) {
-            btnClass = "btn-success";
+            cellClass = "bg-accent-soft text-accent-soft-foreground hover:bg-accent-soft-hover";
           }
 
           return (
             <button
               key={i}
-              onClick={() => {
-                onGoTo(i);
-              }}
+              type="button"
+              onClick={() => onGoTo(i)}
+              aria-current={isCurrent ? "true" : undefined}
               title={`Câu ${i + 1}${isFlagged ? " (đã đánh dấu)" : ""}`}
-              className={`btn ${btnClass} relative ${large ? "btn-sm min-h-9 h-10 px-0 text-sm" : "btn-xs min-h-5 h-6 px-0 text-[10px]"}`}
+              className={`relative flex items-center justify-center rounded-md font-semibold tabular-nums transition-colors duration-150 cursor-pointer ${large ? "h-9 text-sm" : "h-7 text-xs"} ${cellClass}`}
             >
               {i + 1}
               {isFlagged && (
-                <Flag size={large ? 8 : 6} className={`absolute ${large ? "-top-0.5 -right-0.5" : "-top-px -right-px"} text-warning fill-warning`} />
+                <Flag
+                  size={large ? 8 : 6}
+                  className="absolute -top-px -right-px text-warning"
+                  weight="fill"
+                />
               )}
             </button>
           );
