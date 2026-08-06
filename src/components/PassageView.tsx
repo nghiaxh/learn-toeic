@@ -1,4 +1,5 @@
-import { Play, Pause, Square, Volume2 } from "lucide-react";
+import { Button } from "@heroui/react";
+import { Play, Pause, Square, SpeakerHigh } from "@phosphor-icons/react";
 import { useSpeech } from "../hooks/useSpeech";
 
 interface PassageViewProps {
@@ -11,74 +12,76 @@ export function PassageView({ title, body, isListening }: PassageViewProps) {
   const { speak, pause, resume, cancel, speaking, paused, supported } = useSpeech();
 
   return (
-    <div className="bg-base-100 border border-base-300 rounded-box p-3 mb-4 shadow-sm">
+    <div className="rounded-xl border border-border bg-surface p-3.5 mb-4 shadow-surface">
       {isListening ? (
         <>
           {title && (
-            <h3 className="text-xs font-bold text-primary uppercase tracking-wide text-center mb-4">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted text-center mb-4">
               {title}
             </h3>
           )}
           {supported ? (
             <div className="flex justify-center gap-2">
               {!speaking ? (
-                <button
-                  onClick={() => speak(body)}
-                  title="Đọc to"
-                  className="btn btn-outline btn-primary btn-md"
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-md"
+                  onPress={() => speak(body)}
                 >
-                  <Play size={18} /> Phát
-                </button>
+                  <Play weight="bold" size={15} /> Phát
+                </Button>
               ) : (
                 <>
                   {paused ? (
-                    <button
-                      onClick={resume}
-                      title="Tiếp tục"
-                      className="btn btn-outline btn-primary btn-md"
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-md"
+                      onPress={resume}
                     >
-                      <Play size={18} /> Tiếp tục
-                    </button>
+                      <Play weight="bold" size={15} /> Tiếp tục
+                    </Button>
                   ) : (
-                    <button
-                      onClick={pause}
-                      title="Tạm dừng"
-                      className="btn btn-outline btn-warning btn-md"
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-md"
+                      onPress={pause}
                     >
-                      <Pause size={18} /> Tạm dừng
-                    </button>
+                      <Pause weight="bold" size={15} /> Tạm dừng
+                    </Button>
                   )}
-                  <button
-                    onClick={cancel}
-                    title="Dừng"
-                    className="btn btn-outline btn-error btn-md"
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    className="rounded-md"
+                    onPress={cancel}
                   >
-                    <Square size={18} /> Dừng
-                  </button>
+                    <Square weight="bold" size={15} /> Dừng
+                  </Button>
                 </>
               )}
             </div>
           ) : (
             <div className="flex justify-center">
-              <span className="text-xs text-base-content/60 flex items-center gap-1">
-                <Volume2 size={14} /> Trình duyệt không hỗ trợ
+              <span className="text-xs text-muted flex items-center gap-1">
+                <SpeakerHigh size={14} /> Trình duyệt không hỗ trợ
               </span>
             </div>
           )}
         </>
       ) : (
         <>
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              {title && (
-                <h3 className="text-sm font-bold text-primary uppercase tracking-wide">
-                  {title}
-                </h3>
-              )}
-            </div>
-          </div>
+          {title && (
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+              {title}
+            </h3>
+          )}
           {body && (
-            <div className={`whitespace-pre-wrap leading-relaxed text-sm text-base-content/90 ${title ? "mt-2.5" : ""}`}>
+            <div
+              className={`whitespace-pre-wrap leading-relaxed text-sm text-foreground/90 ${title ? "mt-2.5" : ""}`}
+            >
               {body}
             </div>
           )}
