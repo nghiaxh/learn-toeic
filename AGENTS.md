@@ -2,7 +2,7 @@
 
 ## Project
 
-TOEIC exam simulator (React 19 + TypeScript + Vite + Tailwind v4 + daisyUI).  
+TOEIC exam simulator (React 19 + TypeScript + Vite + Tailwind v4 + HeroUI).  
 Single-page app, no backend, no database.
 
 ## Commands
@@ -12,10 +12,8 @@ npm run dev        # Vite dev server
 npm run build      # tsc -b && vite build
 npm run lint       # eslint .
 npx tsc --noEmit   # type-check only
-npm run preview    # preview built site
+npm run test       # vitest run (Vitest + React Testing Library)
 ```
-
-No test framework exists. Do not run tests.
 
 ## Architecture
 
@@ -117,8 +115,10 @@ No external state library. All state is React built-ins:
 
 ## Design conventions
 
-- Tailwind utility classes + daisyUI theme components (`btn`, `card`, `badge`, etc.). Prefer daisyUI semantic colors (`primary`, `base-100`, etc.).
-- `lucide-react` for icons. `react-router-dom` for routing.
+- Tailwind utility classes + HeroUI components (`Button`, `Card`, `Modal`, `Accordion`, `AlertDialog`, `ProgressBar`, etc.) with compound `.Root/.Content/...` parts. Prefer HeroUI semantic color tokens (`accent`, `surface`, `muted`, `border`, `success`, `warning`, `danger`).
+- `@phosphor-icons/react` for icons (standard `weight="regular"`; `"fill"` only for flagged state). `react-router` for routing.
+- Self-hosted fonts via `@fontsource`: `Be Vietnam Pro` (sans), `Newsreader` (serif), `JetBrains Mono` (mono). Minimal editorial aesthetic; warm monochrome tokens in `src/index.css`.
+- HeroUI Button does not forward `title` — wrap icon-only buttons in a `<span title="...">` for native tooltips.
 - Theme context in `src/context/ThemeContext.tsx` — toggles `data-theme` on `<html>`. Stores theme in `localStorage` as `toeic-theme` (`"light"` / `"dark"`).
 - All UI strings are in Vietnamese (tiếng Việt).
 

@@ -1,6 +1,6 @@
 # Learn TOEIC
 
-A TOEIC exam simulator built with React 19, TypeScript, Vite, Tailwind CSS v4, and daisyUI.
+A TOEIC exam simulator built with React 19, TypeScript, Vite, Tailwind CSS v4, and HeroUI.
 
 ## Features
 
@@ -29,9 +29,10 @@ npm test          # Run all tests (Vitest)
 | TypeScript | Type safety |
 | Vite | Bundler & dev server |
 | Tailwind CSS v4 | Utility CSS |
-| daisyUI | UI component library |
-| react-router-dom | Client-side routing |
-| lucide-react | Icons |
+| @heroui/react | UI component library |
+| react-router | Client-side routing |
+| @phosphor-icons/react | Icons |
+| @fontsource | Self-hosted fonts (Be Vietnam Pro, Newsreader, JetBrains Mono) |
 | Browser Speech API | TTS for listening passages |
 | Vitest | Test runner |
 | React Testing Library | Component tests |
