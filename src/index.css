@@ -106,3 +106,12 @@ body {
     transform: none;
   }
 }
+
+/* Freeze modal geometry to the small viewport height so bottom sheets and dialogs
+   do not jump when the mobile URL bar or on-screen keyboard resizes the visual viewport. */
+.modal__container,
+.modal__backdrop,
+.alert-dialog__container,
+.alert-dialog__backdrop {
+  height: 100svh;
+}

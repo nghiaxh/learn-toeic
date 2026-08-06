@@ -25,6 +25,7 @@ import { PassageView } from "../components/PassageView";
 import { successButtonStyle, warningButtonStyle } from "../components/buttonStyles";
 import { useSpeech } from "../hooks/useSpeech";
 import { useTheme } from "../context/ThemeContext";
+import type { AnswerKey, AnswerSelection } from "../types";
 
 function ReadAloudInline({ text }: { text: string }) {
   const { speak, pause, resume, cancel, speaking, paused, supported } = useSpeech();
@@ -72,6 +73,7 @@ export function Exam() {
   const { theme, toggleTheme } = useTheme();
   const paletteState = useOverlayState();
   const [submitOpen, setSubmitOpen] = useState(false);
+  const [exitOpen, setExitOpen] = useState(false);
   const [checkedQuestions, setCheckedQuestions] = useState<Set<number>>(new Set());
 
   const typedSection = (section === "listening" || section === "reading" || section === "full")
@@ -90,20 +92,31 @@ export function Exam() {
 
   const exam = useExam(shuffledQuestions.length);
 
+  const computeScore = useCallback(
+    (answers: Record<number, AnswerSelection>) => {
+      let score = 0;
+      let total = 0;
+      for (const q of shuffledQuestions) {
+        const points = q.blanks ? q.blanks.length : 1;
+        total += points;
+        const userAnswer = answers[q.id];
+        if (!userAnswer) continue;
+        if (Array.isArray(userAnswer)) {
+          score += q.blanks
+            ? q.blanks.filter((b, i) => userAnswer[i] === b.answer).length
+            : 0;
+        } else if (userAnswer === q.answer) {
+          score += 1;
+        }
+      }
+      return { score, total };
+    },
+    [shuffledQuestions]
+  );
+
   const timer = useTimer(timeLimit, () => {
     if (exam.isSubmitted) return;
-    const score = shuffledQuestions.reduce((acc, q) => {
-      const userAnswer = exam.answers[q.id];
-      if (!userAnswer) return acc;
-      if (q.blanks) {
-        return acc + q.blanks.filter((b) => b.answer === userAnswer).length;
-      }
-      return acc + (userAnswer === q.answer ? 1 : 0);
-    }, 0);
-    const total = shuffledQuestions.reduce(
-      (acc, q) => acc + (q.blanks ? q.blanks.length : 1),
-      0
-    );
+    const { score, total } = computeScore(exam.answers);
     navigate("/result", {
       state: {
         section: typedSection,
@@ -130,12 +143,51 @@ export function Exam() {
     (currentQuestion?.part != null && currentQuestion.part >= 6 && currentQuestion.passage != null);
   const isPart6 = currentQuestion?.part === 6;
 
+  const currentAnswer = currentQuestion ? exam.answers[currentQuestion.id] : undefined;
+  const isArrayAnswer = Array.isArray(currentAnswer);
+
   const showAudio = isListening || (typedSection === "full" && currentQuestion != null && currentQuestion.part <= 4);
 
+  const { cancel } = useSpeech();
+
+  useEffect(() => {
+    cancel();
+  }, [cancel, currentQuestion?.id, exam.isSubmitted]);
+
+  useEffect(() => {
+    if (exam.isSubmitted) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [exam.isSubmitted]);
+
+  useEffect(() => {
+    const baseTitle = "TOEIC";
+    if (exam.isSubmitted || !timer.isRunning || timer.timeRemaining >= 600) {
+      document.title = baseTitle;
+      return;
+    }
+    document.title = `${timer.formatted} · ${baseTitle}`;
+    return () => {
+      document.title = baseTitle;
+    };
+  }, [timer.formatted, timer.timeRemaining, timer.isRunning, exam.isSubmitted]);
+
   const handleSelect = useCallback(
-    (answer: string) => {
-      if (exam.isSubmitted || !currentQuestion) return;
-      exam.setAnswer(currentQuestion.id, answer as "A" | "B" | "C" | "D");
+    (answer: AnswerKey) => {
+      if (exam.isSubmitted || !currentQuestion || currentQuestion.blanks) return;
+      exam.setAnswer(currentQuestion.id, answer);
+    },
+    [currentQuestion, exam]
+  );
+
+  const handleSelectBlank = useCallback(
+    (blankIndex: number, answer: AnswerKey) => {
+      if (exam.isSubmitted || !currentQuestion || !currentQuestion.blanks) return;
+      exam.setBlankAnswer(currentQuestion.id, blankIndex, answer);
     },
     [currentQuestion, exam]
   );
@@ -143,7 +195,27 @@ export function Exam() {
   const handleClearAnswer = useCallback(() => {
     if (!currentQuestion || exam.isSubmitted) return;
     exam.setAnswer(currentQuestion.id, null);
-  }, [currentQuestion, exam.isSubmitted, exam]);
+  }, [currentQuestion, exam]);
+
+  const isQuestionAnswered = useCallback(
+    (q: (typeof currentQuestion)) => {
+      if (!q) return false;
+      const entry = exam.answers[q.id];
+      if (entry == null) return false;
+      return Array.isArray(entry) ? entry.every((a) => a != null) : true;
+    },
+    [exam.answers]
+  );
+
+  const unansweredCount = useMemo(
+    () => shuffledQuestions.filter((q) => !isQuestionAnswered(q)).length,
+    [shuffledQuestions, isQuestionAnswered]
+  );
+
+  const firstUnansweredIndex = useMemo(
+    () => shuffledQuestions.findIndex((q) => !isQuestionAnswered(q)),
+    [shuffledQuestions, isQuestionAnswered]
+  );
 
   const handleCheck = useCallback(() => {
     if (!currentQuestion || exam.isSubmitted) return;
@@ -161,18 +233,7 @@ export function Exam() {
 
   const confirmSubmit = useCallback(() => {
     timer.pause();
-    const score = shuffledQuestions.reduce((acc, q) => {
-      const userAnswer = exam.answers[q.id];
-      if (!userAnswer) return acc;
-      if (q.blanks) {
-        return acc + q.blanks.filter((b) => b.answer === userAnswer).length;
-      }
-      return acc + (userAnswer === q.answer ? 1 : 0);
-    }, 0);
-    const total = shuffledQuestions.reduce(
-      (acc, q) => acc + (q.blanks ? q.blanks.length : 1),
-      0
-    );
+    const { score, total } = computeScore(exam.answers);
     navigate("/result", {
       state: {
         section: typedSection,
@@ -183,7 +244,7 @@ export function Exam() {
         timeSpent: timeLimit - timer.timeRemaining,
       },
     });
-  }, [shuffledQuestions, exam.answers, typedSection, navigate, timeLimit, timer.timeRemaining]);
+  }, [computeScore, shuffledQuestions, exam.answers, typedSection, navigate, timeLimit, timer]);
 
   const timeWarning = timer.timeRemaining < 300;
 
@@ -199,7 +260,7 @@ export function Exam() {
     <div className="h-dvh flex flex-col overflow-hidden">
       <header className="z-10 flex shrink-0 items-center justify-between gap-2 border-b border-border bg-surface px-3 py-2 shadow-xs">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => setExitOpen(true)}
           className="font-serif text-lg font-semibold tracking-tight text-accent hover:opacity-80 cursor-pointer"
         >
           TOEIC
@@ -214,7 +275,7 @@ export function Exam() {
           <Button size="sm" variant="primary" onPress={handleSubmit} className="rounded-lg">
             <CheckCircle size={14} /> <span className="hidden sm:inline ml-0.5">Nộp bài</span>
           </Button>
-          <Button size="sm" variant="ghost" onPress={() => navigate("/")} className="rounded-lg">
+          <Button size="sm" variant="ghost" onPress={() => setExitOpen(true)} className="rounded-lg">
             <SignOut size={14} /> <span className="hidden sm:inline ml-0.5">Thoát</span>
           </Button>
           <span title={theme === "dark" ? "Chế độ sáng" : "Chế độ tối"}>
@@ -270,7 +331,7 @@ export function Exam() {
 
           <QuestionCard
             question={currentQuestion}
-            selectedAnswer={exam.answers[currentQuestion.id]}
+            selectedAnswer={isArrayAnswer ? undefined : (currentAnswer ?? null)}
             onSelect={handleSelect}
             showResult={checkedQuestions.has(currentQuestion.id)}
             correctAnswer={checkedQuestions.has(currentQuestion.id) ? currentQuestion.answer : undefined}
@@ -278,6 +339,10 @@ export function Exam() {
             flagged={exam.flagged.has(currentQuestion.id)}
             onToggleFlag={() => exam.toggleFlag(currentQuestion.id)}
             onClearAnswer={handleClearAnswer}
+            questionNumber={exam.currentIndex + 1}
+            partLabel={`Phần ${currentQuestion.part}`}
+            blankAnswers={isArrayAnswer ? currentAnswer : []}
+            onSelectBlank={handleSelectBlank}
           />
 
           {/* Desktop inline nav */}
@@ -398,19 +463,12 @@ export function Exam() {
       <Modal.Root state={paletteState}>
         <Modal.Backdrop>
           <Modal.Container placement="bottom" size="md">
-            <Modal.Dialog>
+            <Modal.Dialog className="max-h-[85svh]">
               <Modal.Header>
-                <Modal.Heading>Danh sách câu hỏi</Modal.Heading>
-                <Button
-                  isIconOnly
-                  size="sm"
-                  variant="ghost"
-                  onPress={paletteState.close}
-                  className="rounded-lg"
-                  aria-label="Đóng"
-                >
-                  ✕
-                </Button>
+                <Modal.Heading className="w-full text-center">
+                  Danh sách câu hỏi
+                </Modal.Heading>
+                <Modal.CloseTrigger aria-label="Đóng" />
               </Modal.Header>
               <Modal.Body>
                 <QuestionPalette
@@ -442,17 +500,72 @@ export function Exam() {
                 </AlertDialog.Icon>
                 <AlertDialog.Heading>Nộp bài?</AlertDialog.Heading>
               </AlertDialog.Header>
-              <AlertDialog.Body>Bạn có chắc chắn muốn nộp bài?</AlertDialog.Body>
+              <AlertDialog.Body className="flex min-h-16 items-center">
+                <p>
+                  Bạn có chắc chắn muốn nộp bài
+                  {unansweredCount > 0 ? ` (còn ${unansweredCount} câu chưa trả lời)` : ""}?
+                </p>
+              </AlertDialog.Body>
+              <AlertDialog.Footer>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onPress={() => setSubmitOpen(false)}
+                  className="rounded-lg whitespace-nowrap"
+                >
+                  Huỷ
+                </Button>
+                {unansweredCount > 0 && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onPress={() => {
+                      setSubmitOpen(false);
+                      if (firstUnansweredIndex >= 0) exam.goTo(firstUnansweredIndex);
+                    }}
+                    className="rounded-lg whitespace-nowrap"
+                  >
+                    Đến câu chưa trả lời
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onPress={confirmSubmit}
+                  className="rounded-lg whitespace-nowrap"
+                >
+                  Nộp bài
+                </Button>
+              </AlertDialog.Footer>
+            </AlertDialog.Dialog>
+          </AlertDialog.Container>
+        </AlertDialog.Backdrop>
+      </AlertDialog.Root>
+
+      {/* Exit confirmation */}
+      <AlertDialog.Root isOpen={exitOpen} onOpenChange={setExitOpen}>
+        <AlertDialog.Backdrop>
+          <AlertDialog.Container size="sm">
+            <AlertDialog.Dialog>
+              <AlertDialog.Header>
+                <AlertDialog.Icon status="warning">
+                  <Warning size={20} weight="bold" />
+                </AlertDialog.Icon>
+                <AlertDialog.Heading>Thoát bài thi?</AlertDialog.Heading>
+              </AlertDialog.Header>
+              <AlertDialog.Body className="flex min-h-16 items-center">
+                Tiến độ làm bài sẽ bị mất. Bạn có chắc chắn muốn thoát?
+              </AlertDialog.Body>
               <AlertDialog.Footer>
                 <Button
                   variant="ghost"
-                  onPress={() => setSubmitOpen(false)}
+                  onPress={() => setExitOpen(false)}
                   className="rounded-lg"
                 >
                   Huỷ
                 </Button>
-                <Button variant="danger" onPress={confirmSubmit} className="rounded-lg">
-                  Nộp bài
+                <Button variant="danger" onPress={() => navigate("/")} className="rounded-lg">
+                  Thoát
                 </Button>
               </AlertDialog.Footer>
             </AlertDialog.Dialog>

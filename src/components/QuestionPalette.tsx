@@ -1,18 +1,23 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Flag } from "@phosphor-icons/react";
-import type { AnswerKey } from "../types";
+import type { AnswerSelection } from "../types";
 
 interface QuestionPaletteProps {
   total: number;
   currentIndex: number;
-  answers: Record<number, AnswerKey | null>;
+  answers: Record<number, AnswerSelection>;
   flagged: Set<number>;
   questionIds: number[];
   onGoTo: (index: number) => void;
   large?: boolean;
 }
 
-export function QuestionPalette({
+function isAnswered(entry: AnswerSelection | undefined): boolean {
+  if (entry == null) return false;
+  return Array.isArray(entry) ? entry.every((a) => a != null) : true;
+}
+
+export const QuestionPalette = memo(function QuestionPalette({
   total,
   currentIndex,
   answers,
@@ -22,7 +27,7 @@ export function QuestionPalette({
   large,
 }: QuestionPaletteProps) {
   const answeredCount = useMemo(
-    () => questionIds.filter((id) => answers[id] != null).length,
+    () => questionIds.filter((id) => isAnswered(answers[id])).length,
     [questionIds, answers]
   );
 
@@ -31,7 +36,7 @@ export function QuestionPalette({
     [questionIds, flagged]
   );
 
-  const cols = large ? (total > 100 ? 10 : 5) : total > 100 ? 12 : 5;
+  const cols = large ? (total > 100 ? 10 : 8) : total > 100 ? 12 : 5;
 
   return (
     <div className={`rounded-xl border border-border bg-surface shadow-surface ${large ? "p-4" : "p-2"}`}>
@@ -45,14 +50,14 @@ export function QuestionPalette({
         {Array.from({ length: total }, (_, i) => {
           const isCurrent = i === currentIndex;
           const qId = questionIds[i];
-          const isAnswered = answers[qId] != null;
+          const isAnsweredFlag = isAnswered(answers[qId]);
           const isFlagged = flagged.has(qId);
 
           let cellClass = "bg-surface-secondary text-muted hover:bg-surface-tertiary";
 
           if (isCurrent) {
             cellClass = "bg-accent text-accent-foreground hover:bg-accent-hover";
-          } else if (isAnswered) {
+          } else if (isAnsweredFlag) {
             cellClass = "bg-accent-soft text-accent-soft-foreground hover:bg-accent-soft-hover";
           }
 
@@ -79,4 +84,4 @@ export function QuestionPalette({
       </div>
     </div>
   );
-}
+});
