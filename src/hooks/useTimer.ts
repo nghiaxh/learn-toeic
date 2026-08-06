@@ -7,6 +7,8 @@ export function useTimer(
   const [timeRemaining, setTimeRemaining] = useState(initialSeconds);
   const [isRunning, setIsRunning] = useState(false);
   const onExpireCb = useRef(onExpire);
+  const endAtRef = useRef<number | null>(null);
+  const durationRef = useRef(initialSeconds);
 
   useEffect(() => {
     onExpireCb.current = onExpire;
@@ -15,22 +17,36 @@ export function useTimer(
   useEffect(() => {
     if (!isRunning) return;
     const interval = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setIsRunning(false);
-          onExpireCb.current();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      if (endAtRef.current == null) return;
+      const remaining = Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000));
+      setTimeRemaining(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        setIsRunning(false);
+        onExpireCb.current();
+      }
+    }, 500);
     return () => clearInterval(interval);
   }, [isRunning]);
 
-  const start = useCallback(() => setIsRunning(true), []);
-  const pause = useCallback(() => setIsRunning(false), []);
+  const start = useCallback(() => {
+    endAtRef.current = Date.now() + durationRef.current * 1000;
+    setIsRunning(true);
+  }, []);
+
+  const pause = useCallback(() => {
+    if (endAtRef.current != null) {
+      const remaining = Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000));
+      durationRef.current = remaining;
+      endAtRef.current = null;
+      setTimeRemaining(remaining);
+    }
+    setIsRunning(false);
+  }, []);
+
   const reset = useCallback((seconds: number) => {
+    durationRef.current = seconds;
+    endAtRef.current = null;
     setTimeRemaining(seconds);
     setIsRunning(false);
   }, []);
