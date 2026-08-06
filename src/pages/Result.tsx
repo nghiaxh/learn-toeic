@@ -1,8 +1,10 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router";
 import { useMemo, useState, useEffect } from "react";
-import { RotateCcw, Home, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowUp, House, ArrowCounterClockwise } from "@phosphor-icons/react";
+import { Button, Card, Accordion, ProgressBar } from "@heroui/react";
 import type { Question, AnswerKey } from "../types";
 import { QuestionCard } from "../components/QuestionCard";
+import { useReveal } from "../hooks/useReveal";
 
 interface ResultState {
   section: string;
@@ -22,12 +24,15 @@ function ScrollToTop() {
   }, []);
   if (!visible) return null;
   return (
-    <button
-      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className="btn btn-primary btn-circle fixed bottom-6 right-6 shadow-lg z-50"
+    <Button
+      isIconOnly
+      variant="primary"
+      onPress={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      className="fixed bottom-6 right-6 z-50 rounded-full shadow-lg"
+      aria-label="Cuộn lên đầu trang"
     >
-      <ChevronUp size={20} />
-    </button>
+      <ArrowUp size={20} weight="bold" />
+    </Button>
   );
 }
 
@@ -40,6 +45,8 @@ export function Result() {
   const pct = total > 0 ? Math.round((score / total) * 100) : 0;
   const section = state?.section ?? "listening";
   const timeSpent = state?.timeSpent ?? 0;
+  const headerRef = useReveal<HTMLDivElement>();
+  const scoreRef = useReveal<HTMLDivElement>();
 
   const estimatedScore = useMemo(() => {
     if (section === "full") return Math.round((score / total) * 990);
@@ -52,79 +59,100 @@ export function Result() {
   const sectionName =
     section === "listening" ? "Nghe" : section === "reading" ? "Đọc" : "Đầy đủ";
 
+  const pctColor = pct >= 70 ? "text-success" : pct >= 50 ? "text-warning" : "text-danger";
+  const progressColor = pct >= 70 ? "success" : pct >= 50 ? "warning" : "danger";
+
   if (!state) {
     return (
-      <div className="p-10 text-center">
-        <p className="mb-4">Không có kết quả. Vui lòng làm bài thi trước.</p>
-        <button onClick={() => navigate("/")} className="btn btn-primary">Trang chủ</button>
+      <div className="flex min-h-dvh flex-col items-center justify-center px-6 py-24 text-center">
+        <p className="text-muted">Không có kết quả. Vui lòng làm bài thi trước.</p>
+        <Button variant="primary" onPress={() => navigate("/")} className="mt-5 rounded-lg">
+          Trang chủ
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 max-w-[800px] mx-auto">
+    <div className="min-h-dvh px-4 py-10 sm:py-14">
+      <div className="mx-auto max-w-[820px]">
+        <header className="reveal text-center" ref={headerRef}>
+          <span className="inline-flex items-center rounded-full border border-border bg-surface px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-muted">
+            Kết quả bài thi
+          </span>
+          <p className="mt-3 text-sm text-muted">
+            {sectionName} — Hoàn thành trong {minutes}m {seconds}s
+          </p>
+        </header>
 
-      <h1 className="text-2xl font-bold text-center mb-0.5 text-primary">
-        Kết quả bài thi
-      </h1>
-      <p className="text-center text-base-content/60 mb-4 text-xs">
-        {sectionName} — Hoàn thành trong {minutes}m {seconds}s
-      </p>
-
-      <div className="card bg-base-100 border border-base-300 text-center mb-4 shadow-sm">
-        <div className="card-body py-4">
-          <div
-            className="text-4xl font-bold leading-none"
-            style={{
-              color: pct >= 70 ? "var(--color-success)" : pct >= 50 ? "#eab308" : "var(--color-error)",
-            }}
-          >
-            {score}/{total}
-          </div>
-          <div className="text-sm text-base-content/60 mt-0.5">{pct}% Đúng</div>
-          {section === "full" && (
-            <div className="mt-2 px-4 py-2 bg-primary/10 rounded-box inline-block">
-              <span className="text-xs text-base-content/60">Điểm TOEIC ước tính:</span>
-              <span className="text-lg font-bold ml-2 text-primary">
-                {estimatedScore} / 990
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="flex justify-center gap-2 pb-6">
-        <button onClick={() => navigate("/")} className="btn btn-outline btn-sm">
-          <Home size={16} /> Về trang chủ
-        </button>
-        <button onClick={() => navigate(`/exam/${section}`)} className="btn btn-primary btn-sm">
-          <RotateCcw size={16} /> Làm lại
-        </button>
-      </div>
-
-      <details className="mb-8" open>
-        <summary className="cursor-pointer text-sm font-semibold text-base-content/70 hover:text-base-content flex items-center gap-1 select-none">
-          <ChevronDown size={16} className="transition-transform" />
-          Xem lại đáp án ({state.questions.length} câu)
-        </summary>
-        <div className="mt-4 space-y-4">
-          {state.questions.map((q) => (
-            <div key={q.id} className="card bg-base-100 border border-base-300 shadow-sm">
-              <div className="card-body py-3 px-3">
-                <QuestionCard
-                  question={q}
-                  selectedAnswer={state.answers[q.id] ?? null}
-                  onSelect={() => {}}
-                  showResult
-                  correctAnswer={q.answer}
-                />
+        <div className="reveal mt-8" ref={scoreRef} style={{ transitionDelay: "80ms" }}>
+          <Card className="rounded-2xl border border-border bg-surface p-6 text-center shadow-surface sm:p-8">
+            <p className="text-xs uppercase tracking-widest text-muted">Số câu đúng</p>
+            <p className={`mt-2 font-serif text-6xl leading-none tabular-nums ${pctColor}`}>
+              {score}/{total}
+            </p>
+            <p className="mt-2 text-sm text-muted">{pct}% Đúng</p>
+            {section === "full" && (
+              <div className="mt-5 inline-flex items-baseline gap-2 rounded-lg border border-border bg-surface-secondary px-4 py-2.5">
+                <span className="text-xs text-muted">Điểm TOEIC ước tính</span>
+                <span className="font-semibold tabular-nums">{estimatedScore} / 990</span>
               </div>
-            </div>
-          ))}
+            )}
+            <ProgressBar
+              color={progressColor}
+              size="sm"
+              value={pct}
+              aria-label="Tỷ lệ trả lời đúng"
+              className="mt-7"
+            />
+          </Card>
         </div>
-      </details>
 
-      <ScrollToTop />
+        <div className="mt-5 flex justify-center gap-2 pb-8">
+          <Button variant="outline" size="sm" onPress={() => navigate("/")} className="rounded-lg">
+            <House size={16} /> Về trang chủ
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onPress={() => navigate(`/exam/${section}`)}
+            className="rounded-lg"
+          >
+            <ArrowCounterClockwise size={16} /> Làm lại
+          </Button>
+        </div>
+
+        <Accordion
+          variant="surface"
+          hideSeparator
+          className="mb-10 overflow-hidden rounded-xl border border-border shadow-surface"
+        >
+          <Accordion.Item defaultExpanded>
+            <Accordion.Heading>
+              <Accordion.Trigger>
+                Xem lại đáp án ({state.questions.length} câu)
+                <Accordion.Indicator />
+              </Accordion.Trigger>
+            </Accordion.Heading>
+            <Accordion.Panel>
+              <div className="space-y-4 px-4 pb-4">
+                {state.questions.map((q) => (
+                  <QuestionCard
+                    key={q.id}
+                    question={q}
+                    selectedAnswer={state.answers[q.id] ?? null}
+                    onSelect={() => {}}
+                    showResult
+                    correctAnswer={q.answer}
+                  />
+                ))}
+              </div>
+            </Accordion.Panel>
+          </Accordion.Item>
+        </Accordion>
+
+        <ScrollToTop />
+      </div>
     </div>
   );
 }
