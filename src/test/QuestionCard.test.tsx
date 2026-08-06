@@ -66,7 +66,7 @@ describe("QuestionCard", () => {
       />
     );
     const optionB = screen.getByText("Option B").closest("button");
-    expect(optionB?.className).toContain("btn-success");
+    expect(optionB?.className).toContain("button--primary");
     expect(screen.getByText("Đúng")).toBeInTheDocument();
   });
 
@@ -81,7 +81,7 @@ describe("QuestionCard", () => {
       />
     );
     const optionA = screen.getByText("Option A").closest("button");
-    expect(optionA?.className).toContain("btn-error");
+    expect(optionA?.className).toContain("button--danger");
     expect(screen.getByText("Câu của bạn")).toBeInTheDocument();
   });
 

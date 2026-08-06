@@ -1,4 +1,7 @@
-import { Check, X, Flag, RotateCcw } from "lucide-react";
+import { Button } from "@heroui/react";
+import type { CSSProperties } from "react";
+import { Check, X, Flag, ArrowCounterClockwise } from "@phosphor-icons/react";
+import { successButtonStyle } from "./buttonStyles";
 import type { Question, AnswerKey } from "../types";
 
 interface QuestionCardProps {
@@ -29,7 +32,7 @@ export function QuestionCard({
   return (
     <div>
       {question.passage && !hidePassage && (
-        <div className="bg-base-100 border border-base-300 rounded-box p-3 mb-4 whitespace-pre-wrap leading-relaxed text-sm shadow-sm">
+        <div className="rounded-xl border border-border bg-surface p-3.5 mb-4 whitespace-pre-wrap leading-relaxed text-sm shadow-surface">
           {question.passage}
         </div>
       )}
@@ -39,74 +42,83 @@ export function QuestionCard({
           Câu {question.id}: {question.question}
         </h3>
         {!showResult && onToggleFlag && (
-          <button
-            onClick={onToggleFlag}
-            title={flagged ? "Bỏ đánh dấu" : "Đánh dấu câu này"}
-            className={`btn btn-ghost btn-square btn-xs shrink-0 ${flagged ? "text-warning" : "text-base-content/40"}`}
-          >
-            <Flag size={14} className={flagged ? "fill-warning" : ""} />
-          </button>
+          <span title={flagged ? "Bỏ đánh dấu" : "Đánh dấu câu này"}>
+            <Button
+              isIconOnly
+              size="sm"
+              variant="ghost"
+              className={`shrink-0 ${flagged ? "text-warning" : "text-muted"}`}
+              aria-label={flagged ? "Bỏ đánh dấu" : "Đánh dấu câu này"}
+              onPress={onToggleFlag}
+            >
+              <Flag size={15} weight={flagged ? "fill" : "regular"} />
+            </Button>
+          </span>
         )}
       </div>
 
-      <div>
+      <div className="flex flex-col gap-1.5">
         {question.options.map((opt, idx) => {
           const key = ALL_KEYS[idx];
           const isSelected = selectedAnswer === key;
           const isCorrect = showResult && key === correctAnswer;
           const isWrong = showResult && isSelected && key !== correctAnswer;
 
-          let btnClass = "btn-outline btn-ghost";
-          let circleClass = "bg-base-300 text-base-content/60";
+          let variant: "outline" | "primary" | "danger" = "outline";
+          let style: CSSProperties | undefined;
+          let badgeClass = "bg-surface-secondary text-muted";
 
           if (isCorrect) {
-            btnClass = "btn-success";
-            circleClass = "bg-success text-white";
+            variant = "primary";
+            style = successButtonStyle;
+            badgeClass = "bg-black/10 text-current";
           } else if (isWrong) {
-            btnClass = "btn-error";
-            circleClass = "bg-error text-white";
+            variant = "danger";
+            badgeClass = "bg-white/15 text-current";
           } else if (isSelected) {
-            btnClass = "btn-primary";
-            circleClass = "bg-primary text-white";
+            variant = "primary";
+            badgeClass = "bg-white/15 text-current";
           }
 
           return (
-            <button
+            <Button
               key={key}
-              onClick={() => !showResult && onSelect(key)}
-              disabled={showResult}
-              className={`btn ${btnClass} w-full justify-start gap-2 mb-1.5 h-auto min-h-[36px] px-3 py-1.5 text-sm font-normal ${
-                showResult ? "cursor-default" : ""
-              }`}
+              variant={variant}
+              style={style}
+              isDisabled={showResult}
+              onPress={() => !showResult && onSelect(key)}
+              className="justify-start w-full h-auto min-h-10 py-2.5 px-3 text-sm font-normal rounded-lg disabled:opacity-100"
             >
               <span
-                className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${circleClass}`}
+                className={`w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${badgeClass}`}
               >
                 {key}
               </span>
               <span className="flex-1 text-left">{opt}</span>
               {isCorrect && (
-                <span className="text-success font-bold text-xs flex items-center gap-1">
-                  <Check size={14} /> Đúng
+                <span className="text-success-foreground font-semibold text-xs flex items-center gap-1">
+                  <Check weight="bold" size={14} /> Đúng
                 </span>
               )}
               {isWrong && (
-                <span className="text-error font-bold text-xs flex items-center gap-1">
-                  <X size={14} /> Câu của bạn
+                <span className="text-white font-semibold text-xs flex items-center gap-1">
+                  <X weight="bold" size={14} /> Câu của bạn
                 </span>
               )}
-            </button>
+            </Button>
           );
         })}
       </div>
 
       {!showResult && selectedAnswer && onClearAnswer && (
-        <button
-          onClick={onClearAnswer}
-          className="btn btn-ghost btn-xs text-base-content/50 hover:text-base-content mt-1"
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted hover:text-foreground mt-1"
+          onPress={onClearAnswer}
         >
-          <RotateCcw size={12} /> Xoá
-        </button>
+          <ArrowCounterClockwise size={13} /> Xoá
+        </Button>
       )}
     </div>
   );
