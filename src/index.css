@@ -1,24 +1,108 @@
 @import "tailwindcss";
-@plugin "daisyui";
+@import "@heroui/styles";
+@import "@fontsource/be-vietnam-pro/400.css";
+@import "@fontsource/be-vietnam-pro/500.css";
+@import "@fontsource/be-vietnam-pro/600.css";
+@import "@fontsource/be-vietnam-pro/700.css";
+@import "@fontsource-variable/newsreader";
+@import "@fontsource-variable/jetbrains-mono";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+@theme {
+  --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Newsreader Variable", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, monospace;
+  --ease-editorial: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  --background: oklch(0.972 0.006 92);
+  --foreground: oklch(0.28 0.012 75);
+  --surface: oklch(1 0 0);
+  --surface-foreground: var(--foreground);
+  --surface-secondary: oklch(0.965 0.006 92);
+  --surface-tertiary: oklch(0.952 0.007 92);
+  --overlay: oklch(1 0 0);
+  --overlay-foreground: var(--foreground);
+  --muted: oklch(0.57 0.012 75);
+
+  --default: oklch(0.938 0.006 92);
+  --default-foreground: var(--foreground);
+
+  --accent: oklch(0.3 0.02 70);
+  --accent-foreground: oklch(0.985 0.002 92);
+
+  --border: oklch(0.905 0.007 92);
+  --separator: oklch(0.93 0.007 92);
+  --radius: 0.6rem;
+
+  --surface-shadow:
+    0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 2px 8px 0 rgba(0, 0, 0, 0.04),
+    0 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: oklch(0.16 0.008 75);
+  --foreground: oklch(0.94 0.006 90);
+  --surface: oklch(0.205 0.009 75);
+  --surface-foreground: var(--foreground);
+  --surface-secondary: oklch(0.24 0.009 75);
+  --surface-tertiary: oklch(0.265 0.009 75);
+  --overlay: oklch(0.225 0.009 75);
+  --overlay-foreground: var(--foreground);
+  --muted: oklch(0.67 0.012 85);
+
+  --default: oklch(0.275 0.009 75);
+  --default-foreground: var(--foreground);
+
+  --accent: oklch(0.87 0.03 85);
+  --accent-foreground: oklch(0.22 0.015 75);
+
+  --border: oklch(0.305 0.009 75);
+  --separator: oklch(0.265 0.009 75);
+  --radius: 0.6rem;
+
+  --surface-shadow: 0 0 0 0 transparent inset;
+  --overlay-shadow: 0 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  --field-shadow: 0 0 0 0 transparent inset;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-sans);
+  background-color: var(--background);
+  color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-@layer base {
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    background: var(--color-base-200);
-  }
-  ::-webkit-scrollbar-thumb {
-    background: var(--color-base-300);
-    border-radius: 4px;
+::selection {
+  background-color: color-mix(in oklab, var(--accent) 22%, transparent);
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 600ms var(--ease-editorial),
+    transform 600ms var(--ease-editorial);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    transition: none;
+    opacity: 1;
+    transform: none;
   }
 }
