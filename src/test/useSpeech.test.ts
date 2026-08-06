@@ -16,7 +16,7 @@ class MockSpeechSynthesisUtterance {
 }
 
 function mockSpeechSynthesis() {
-  (globalThis as any).SpeechSynthesisUtterance = MockSpeechSynthesisUtterance;
+  (globalThis as { SpeechSynthesisUtterance: typeof MockSpeechSynthesisUtterance }).SpeechSynthesisUtterance = MockSpeechSynthesisUtterance;
   const mockUtterance = new MockSpeechSynthesisUtterance("");
   const mock = {
     speaking: false,
@@ -35,7 +35,7 @@ function mockSpeechSynthesis() {
 }
 
 beforeEach(() => {
-  delete (window as any).speechSynthesis;
+  delete (window as { speechSynthesis?: unknown }).speechSynthesis;
 });
 
 describe("useSpeech", () => {

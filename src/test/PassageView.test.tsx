@@ -16,7 +16,7 @@ function mockSpeechSynthesis() {
 }
 
 function removeSpeechSynthesis() {
-  delete (window as any).speechSynthesis;
+  delete (window as { speechSynthesis?: unknown }).speechSynthesis;
 }
 
 describe("PassageView", () => {
