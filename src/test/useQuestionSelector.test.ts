@@ -85,4 +85,54 @@ describe("useQuestionSelector", () => {
     );
     expect(result.current).toHaveLength(0);
   });
+
+  it("returns full-exam questions ordered by part", () => {
+    const mixed: Question[] = [];
+    for (let i = 1; i <= 100; i++) mixed.push({ ...makeQuestion(i), part: 1 });
+    for (let i = 1301; i <= 1400; i++) mixed.push({ ...makeQuestion(i), part: 7 });
+    const { result } = renderHook(() => useQuestionSelector(mixed, "full"));
+    expect(result.current).toHaveLength(200);
+    for (let i = 1; i < result.current.length; i++) {
+      expect(result.current[i - 1].part).toBeLessThanOrEqual(result.current[i].part);
+    }
+  });
+
+  it("merges part 6 questions sharing a passage into blanks", () => {
+    const part6Questions: Question[] = [1, 2, 3].map((n) => ({
+      id: 1300 + n,
+      part: 6,
+      question: "_____",
+      options: ["A) w1", "B) x1", "C) y1", "D) z1"],
+      answer: ("A" as const),
+      passageBody: "Shared memo body with a blank.",
+    }));
+    const { result } = renderHook(() =>
+      useQuestionSelector(part6Questions, "reading")
+    );
+    expect(result.current).toHaveLength(1);
+    const group = result.current[0];
+    expect(group.part).toBe(6);
+    expect(group.blanks).toHaveLength(3);
+    for (const blank of group.blanks!) {
+      expect(blank.options).toHaveLength(4);
+      expect(blank.options[0]).not.toMatch(/^[A-D]\)\s*/);
+      expect(["A", "B", "C", "D"]).toContain(blank.answer);
+    }
+  });
+
+  it("does not merge part 6 questions with different passages", () => {
+    const part6Questions: Question[] = [1, 2].map((n) => ({
+      id: 1300 + n,
+      part: 6,
+      question: "_____",
+      options: ["A) w", "B) x", "C) y", "D) z"],
+      answer: "A",
+      passageBody: `Different memo ${n}`,
+    }));
+    const { result } = renderHook(() =>
+      useQuestionSelector(part6Questions, "reading")
+    );
+    expect(result.current).toHaveLength(2);
+    expect(result.current.every((q) => q.blanks == null)).toBe(true);
+  });
 });

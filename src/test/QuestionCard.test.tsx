@@ -159,4 +159,91 @@ describe("QuestionCard", () => {
     );
     expect(screen.queryByTitle("Đánh dấu câu này")).not.toBeInTheDocument();
   });
+
+  it("renders part 6 blanks as independent option groups", () => {
+    const q: Question = {
+      id: 10,
+      part: 6,
+      question: "_____",
+      options: ["alpha", "beta", "gamma", "delta"],
+      answer: "B",
+      blanks: [
+        { options: ["alpha", "beta", "gamma", "delta"], answer: "B" },
+        { options: ["one", "two", "three", "four"], answer: "C" },
+      ],
+    };
+    render(
+      <QuestionCard
+        question={q}
+        selectedAnswer={null}
+        onSelect={() => {}}
+        blankAnswers={[null, "C"]}
+        onSelectBlank={() => {}}
+        onClearAnswer={() => {}}
+      />
+    );
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+    expect(screen.getByText("one")).toBeInTheDocument();
+    expect(screen.getByText("Xoá")).toBeInTheDocument();
+  });
+
+  it("calls onSelectBlank when a blank option is clicked", async () => {
+    const onSelectBlank = vi.fn();
+    const q: Question = {
+      id: 10,
+      part: 6,
+      question: "_____",
+      options: ["alpha", "beta", "gamma", "delta"],
+      answer: "B",
+      blanks: [{ options: ["alpha", "beta", "gamma", "delta"], answer: "B" }],
+    };
+    const user = userEvent.setup();
+    render(
+      <QuestionCard
+        question={q}
+        selectedAnswer={null}
+        onSelect={() => {}}
+        blankAnswers={[null]}
+        onSelectBlank={onSelectBlank}
+      />
+    );
+    await user.click(screen.getByText("alpha"));
+    expect(onSelectBlank).toHaveBeenCalledWith(0, "A");
+  });
+
+  it("shows correct and wrong blank answers in showResult mode", () => {
+    const q: Question = {
+      id: 10,
+      part: 6,
+      question: "_____",
+      options: ["alpha", "beta", "gamma", "delta"],
+      answer: "B",
+      blanks: [{ options: ["alpha", "beta", "gamma", "delta"], answer: "B" }],
+    };
+    render(
+      <QuestionCard
+        question={q}
+        selectedAnswer={null}
+        onSelect={() => {}}
+        showResult
+        blankAnswers={["A"]}
+      />
+    );
+    expect(screen.getByText("Đúng")).toBeInTheDocument();
+    expect(screen.getByText("Câu của bạn")).toBeInTheDocument();
+  });
+
+  it("uses questionNumber and partLabel in the header", () => {
+    render(
+      <QuestionCard
+        question={baseQuestion}
+        selectedAnswer={null}
+        onSelect={() => {}}
+        questionNumber={7}
+        partLabel="Phần 5"
+      />
+    );
+    expect(screen.getByText(/Câu 7/)).toBeInTheDocument();
+    expect(screen.getByText(/Phần 5/)).toBeInTheDocument();
+  });
 });

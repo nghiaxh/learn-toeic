@@ -85,4 +85,62 @@ describe("questions data", () => {
       }
     }
   });
+
+  it("has no exact duplicate questions in parts 5 and 7", () => {
+    const seen = new Set<string>();
+    for (const q of questions) {
+      if (q.part === 5 || q.part === 7) {
+        const key = `${q.part}|${q.question}|${q.options.join("~")}|${q.answer}`;
+        expect(seen.has(key)).toBe(false);
+        seen.add(key);
+      }
+    }
+  });
+
+  it("has no near-duplicate part 7 passages", () => {
+    const groups = new Map<string, string[]>();
+    for (const q of questions) {
+      if (q.part !== 7) continue;
+      const key = `${q.question}|${q.options.join("~")}|${q.answer}`;
+      const body = q.passageBody ?? q.passage ?? "";
+      const list = groups.get(key) ?? [];
+      list.push(body);
+      groups.set(key, list);
+    }
+    const tokens = (text: string) =>
+      new Set(text.toLowerCase().split(/\W+/).filter(Boolean));
+    for (const [key, bodies] of groups) {
+      for (let i = 0; i < bodies.length; i++) {
+        for (let j = i + 1; j < bodies.length; j++) {
+          const ta = tokens(bodies[i]);
+          const tb = tokens(bodies[j]);
+          const inter = [...ta].filter((t) => tb.has(t)).length;
+          const union = new Set([...ta, ...tb]).size;
+          const sim = union === 0 ? 0 : inter / union;
+          expect(sim, `part 7 near-dup: ${key}`).toBeLessThan(0.5);
+        }
+      }
+    }
+  });
+
+  it("has a balanced answer key distribution", () => {
+    const counts = { A: 0, B: 0, C: 0, D: 0 };
+    const part2 = { A: 0, B: 0, C: 0 };
+    for (const q of questions) {
+      counts[q.answer as keyof typeof counts]++;
+      if (q.part === 2) part2[q.answer as keyof typeof part2]++;
+    }
+    const total = questions.length;
+    const part2Total = questions.filter((q) => q.part === 2).length;
+    for (const key of ["A", "B", "C", "D"] as const) {
+      const pct = counts[key] / total;
+      expect(pct).toBeGreaterThanOrEqual(0.15);
+      expect(pct).toBeLessThanOrEqual(0.4);
+    }
+    for (const key of ["A", "B", "C"] as const) {
+      const pct = part2[key] / part2Total;
+      expect(pct).toBeGreaterThanOrEqual(0.25);
+      expect(pct).toBeLessThanOrEqual(0.45);
+    }
+  });
 });

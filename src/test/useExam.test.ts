@@ -79,4 +79,25 @@ describe("useExam", () => {
     act(() => result.current.submit());
     expect(result.current.isSubmitted).toBe(true);
   });
+
+  it("sets and clears a blank answer", () => {
+    const { result } = renderHook(() => useExam(100));
+    act(() => result.current.setBlankAnswer(42, 1, "C"));
+    expect(result.current.answers[42]).toEqual([null, "C"]);
+    expect(result.current.answeredCount).toBe(0);
+    act(() => result.current.setBlankAnswer(42, 0, "A"));
+    expect(result.current.answers[42]).toEqual(["A", "C"]);
+    expect(result.current.answeredCount).toBe(1);
+    act(() => result.current.setBlankAnswer(42, 0, null));
+    act(() => result.current.setBlankAnswer(42, 1, null));
+    expect(result.current.answers[42]).toBeUndefined();
+    expect(result.current.answeredCount).toBe(0);
+  });
+
+  it("overwrites a blank answer", () => {
+    const { result } = renderHook(() => useExam(100));
+    act(() => result.current.setBlankAnswer(42, 0, "B"));
+    act(() => result.current.setBlankAnswer(42, 0, "D"));
+    expect(result.current.answers[42]).toEqual(["D"]);
+  });
 });

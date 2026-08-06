@@ -29,6 +29,9 @@ function mockSpeechSynthesis() {
       Object.assign(mockUtterance, u);
     }),
     getUtterance: () => mockUtterance,
+    getVoices: vi.fn(() => []),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
   };
   Object.assign(window, { speechSynthesis: mock });
   return mock;
