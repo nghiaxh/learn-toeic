@@ -11,7 +11,7 @@ Single-page app, no backend, no database.
 npm run dev        # Vite dev server
 npm run build      # tsc -b && vite build
 npm run lint       # eslint .
-npx tsc --noEmit   # type-check only
+npx tsc --noEmit   # no-op (root tsconfig has files: []); use npm run build to typecheck
 npm run test       # vitest run (Vitest + React Testing Library)
 ```
 
@@ -72,6 +72,8 @@ All data and state live in-memory within a single session. Navigation between `E
 
 `scripts/` contains generator/codegen tools (Node.js) that write TypeScript source:
 - `scripts/generate-questions.mjs` — main generator. Uses template literals via `String.fromCharCode(96)` to avoid backtick-escaping issues when writing `.ts` files with tools that parse backticks.
+- `scripts/cleanup-duplicates.mjs` — removes duplicate Part 5/7 questions (exact fingerprint + Part 7 passage-similarity ≥ 0.5).
+- `scripts/balance-answers.mjs` — deterministically reorders source options so answer keys are evenly distributed (Part 2 uses A/B/C only).
 - `scripts/check-part2.mjs`, `scripts/cleanup-data.mjs`, etc. — data validation helpers.
 
 When writing generator scripts that involve backtick template literals, use `String.fromCharCode(96)` to produce backticks safely.
@@ -100,7 +102,7 @@ No external state library. All state is React built-ins:
 |-------|-------|-----------|
 | Question bank | Static import | Module-level array |
 | Selected + shuffled questions | `Exam.tsx` | `useMemo` via `useQuestionSelector` |
-| Per-exam answers | `useExam` | `useState<Record<number, AnswerKey\|null>>` |
+| Per-exam answers | `useExam` | `useState<Record<number, AnswerSelection>>` (`AnswerSelection` = `AnswerKey \| AnswerKey[] \| null`; Part 6 groups store per-blank arrays) |
 | Current question index | `useExam` | `useState<number>` |
 | Flagged questions | `useExam` | `useState<Set<number>>` |
 | Timer | `useTimer` | `useState<number>` + `setInterval` |
@@ -177,7 +179,7 @@ Displays score (raw count + percentage), estimated TOEIC score (full test: /990,
 - Questions must cover diverse, realistic TOEIC topics: business meetings, travel, office procedures, daily life, dining, shopping, etc. Avoid overly generic or repetitive scenarios.
 - Each question must have exactly one unambiguous correct answer (the `answer` field), with the remaining options being plausibly wrong but clearly incorrect to a competent English learner.
 - Listening passage texts (Parts 1–4) must read naturally when spoken aloud by browser TTS — use complete sentences, correct punctuation, and realistic speech patterns.
-- After generating or editing questions, verify with `npx tsc --noEmit`.
+- After generating or editing questions, verify with `npm run build` (runs `tsc -b`, the real typecheck; root `npx tsc --noEmit` is a no-op because `tsconfig.json` has `files: []`).
 
 ## Git convention
 
