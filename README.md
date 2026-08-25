@@ -1,5 +1,11 @@
 # Learn TOEIC
 
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-tested-6DA55F?logo=vitest&logoColor=white)
+
 A TOEIC exam simulator built with React 19, TypeScript, Vite, Tailwind CSS v4, and HeroUI.
 
 ## Features
